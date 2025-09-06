@@ -12,44 +12,52 @@ const askQuestion = async (req, res) => {
       return res.status(400).json({ message: 'Question is required' });
     }
 
-    // Check for specific responses first
+    // Always use specific responses for better answers
     const specificResponse = getSpecificResponse(question);
     if (specificResponse) {
       return res.json(specificResponse);
     }
-
-    const spiritualPrompt = createSpiritualPrompt(question, tradition);
     
-    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: spiritualPrompt
+    // If no specific response, try AI API first
+    try {
+      const spiritualPrompt = createSpiritualPrompt(question, tradition);
+      
+      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: spiritualPrompt
+            }]
           }]
-        }]
-      })
-    });
+        })
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to get AI response');
+      if (response.ok) {
+        const data = await response.json();
+        const aiResponse = data.candidates[0].content.parts[0].text;
+        
+        return res.json({
+          guidance: aiResponse,
+          tradition: tradition,
+          timestamp: new Date().toISOString(),
+          source: 'AI Spiritual Guru powered by Google AI'
+        });
+      }
+    } catch (aiError) {
+      console.error('AI API Error:', aiError);
     }
-
-    const data = await response.json();
-    const aiResponse = data.candidates[0].content.parts[0].text;
     
-    res.json({
-      guidance: aiResponse,
-      tradition: tradition,
-      timestamp: new Date().toISOString(),
-      source: 'AI Spiritual Guru powered by Google AI'
-    });
+    // If AI fails, return enhanced fallback
+    return res.json(getFallbackResponse(question));
+
+
   } catch (error) {
     console.error('AI Controller Error:', error);
-    res.json(getFallbackResponse(req.body.question));
+    return res.json(getFallbackResponse(question));
   }
 };
 
@@ -311,6 +319,43 @@ if (q.includes('rama return') || q.includes('rama coronation')) {
 }
 
   
+  // Add missing specific responses
+  if (q.includes('who is arjuna') || q.includes('arjuna')) {
+    return {
+      guidance: `🏹 **Arjuna - The Ideal Disciple**\n\nArjuna was Krishna's dear friend, cousin, and the greatest archer of his time. He is the third Pandava brother and the recipient of the Bhagavad Gita's divine wisdom.\n\n**Arjuna's Qualities:**\n- **Skill**: Greatest archer (Gudakesha - conqueror of sleep)\n- **Devotion**: Krishna's beloved friend and disciple\n- **Righteousness**: Fought for dharma in Kurukshetra\n- **Humility**: Asked Krishna for guidance in his moment of doubt\n\n"पार्थ" (Partha) - Son of Pritha (Kunti), Krishna's affectionate name for him.\n\nArjuna represents the sincere seeker who surrenders to divine wisdom. 🙏`,
+      tradition: 'Bhagavad Gita',
+      timestamp: new Date().toISOString(),
+      source: 'Bhagavad Gita - Mahabharata'
+    };
+  }
+  
+  if (q.includes('who is ram') || q.includes('who is rama') || q.includes('ram')) {
+    return {
+      guidance: `🕉️ **Lord Rama - The Embodiment of Dharma**\n\nLord Rama, the seventh avatar of Vishnu, represents the perfect embodiment of righteousness and virtue. Known as "Maryada Purushottama" (the ideal man), Rama's life exemplifies dharma in action.\n\n"धर्म एव हतो हन्ति धर्मो रक्षति रक्षितः" - "Dharma destroys those who destroy it, and protects those who protect it."\n\nRama's devotion to his parents, his love for Sita, his friendship with Hanuman, and his compassion even for his enemies show us the path of righteous living. His 14-year exile teaches us about accepting life's challenges with grace and maintaining our principles even in adversity.\n\n🙏 May Lord Rama's example inspire you to walk the path of dharma with courage and compassion.`,
+      tradition: 'Ramayana',
+      timestamp: new Date().toISOString(),
+      source: 'Ramayana - Valmiki'
+    };
+  }
+  
+  if (q.includes('what is death') || (q.includes('death') && !q.includes('after'))) {
+    return {
+      guidance: `🕉️ **Krishna's Teaching on Death**\n\n"न जायते म्रियते वा कदाचित् न अयं भूत्वा भविता वा न भूयः।\nअजो नित्यः शाश्वतो अयं पुराणो न हन्यते हन्यमाने शरीरे॥"\n\n**Translation**: "For the soul there is neither birth nor death. It is not slain when the body is slain." (Bhagavad Gita 2.20)\n\n**What happens after death:**\n- The eternal soul (atman) never dies\n- Only the body changes, like changing clothes\n- The soul carries its karma to the next life\n- Based on consciousness at death, the soul gets its next body\n- Ultimate goal: Liberation (moksha) from the cycle of birth and death\n\nDeath is not the end, but a transition. Focus on spiritual growth in this life. 🙏`,
+      tradition: 'Bhagavad Gita',
+      timestamp: new Date().toISOString(),
+      source: 'Bhagavad Gita - Lord Krishna\'s Teachings'
+    };
+  }
+  
+  if (q.includes('what is relationship') || q.includes('relationship')) {
+    return {
+      guidance: `💖 **What is Relationship - Krishna's Teaching**\n\n"सुहृन्मित्रार्युदासीनमध्यस्थद्वेष्यबन्धुषु। साधुष्वपि च पापेषु समबुद्धिर्विशिष्यते॥"\n\n**Translation**: "One who is equal to friends and enemies, who is equipoised in honor and dishonor, heat and cold, happiness and distress, fame and infamy, is very dear to Me." (Bhagavad Gita 12.18-19)\n\n**Krishna's Wisdom on Relationships:**\n\n🔹 **True Relationship** is based on seeing the divine soul in every being\n🔹 **Love without attachment** - Care deeply but don't possess\n🔹 **Serve without expectation** - Give love freely without demanding return\n🔹 **Practice forgiveness** - Relationships grow through understanding\n🔹 **Spiritual companionship** - Help each other grow closer to God\n\n**Types of Relationships:**\n- **Sakhya** (Friendship) - Like Krishna and Arjuna\n- **Vatsalya** (Parental love) - Unconditional care\n- **Madhurya** (Divine love) - Soul's relationship with God\n\nRelationships are opportunities to practice love, patience, and spiritual growth. The highest relationship is with the Divine within all beings.\n\n🙏 May your relationships be blessed with divine love and understanding.`,
+      tradition: 'Bhagavad Gita',
+      timestamp: new Date().toISOString(),
+      source: 'Bhagavad Gita - Lord Krishna\'s Teachings'
+    };
+  }
+  
   return null;
 };
 
@@ -367,58 +412,77 @@ const isKrishnaRelated = (question) => {
 const getFallbackResponse = (question) => {
   const q = question.toLowerCase();
   
-  // Specific character/story questions
-  if (q.includes('brother of ram') || q.includes('ram brother') || q.includes('rama brother')) {
+  // Enhanced fallback responses with more specific spiritual guidance
+  if (q.includes('peace') || q.includes('calm') || q.includes('anxiety') || q.includes('stress')) {
     return {
-      guidance: `🏹 **Brothers of Lord Rama**\n\nLord Rama had three beloved brothers:\n\n**1. Lakshmana** - The devoted brother who accompanied Rama during his 14-year exile. Symbol of loyalty and service.\n\n**2. Bharata** - The righteous brother who ruled Ayodhya in Rama's absence, placing Rama's sandals on the throne. Symbol of dharma and sacrifice.\n\n**3. Shatrughna** - Twin brother of Lakshmana, known for his strength and devotion to family.\n\n"भ्रातृप्रेम सर्वोपरि" - "Brotherly love is supreme"\n\nAll four brothers exemplified the ideal of family dharma and mutual love. 🙏`,
-      tradition: 'Ramayana',
-      timestamp: new Date().toISOString(),
-      source: 'Ramayana - Valmiki'
-    };
-  }
-  
-  if (q.includes('arjuna') || q.includes('who is arjuna')) {
-    return {
-      guidance: `🏹 **Arjuna - The Ideal Disciple**\n\nArjuna was Krishna's dear friend, cousin, and the greatest archer of his time. He is the third Pandava brother and the recipient of the Bhagavad Gita's divine wisdom.\n\n**Arjuna's Qualities:**\n- **Skill**: Greatest archer (Gudakesha - conqueror of sleep)\n- **Devotion**: Krishna's beloved friend and disciple\n- **Righteousness**: Fought for dharma in Kurukshetra\n- **Humility**: Asked Krishna for guidance in his moment of doubt\n\n"पार्थ" (Partha) - Son of Pritha (Kunti), Krishna's affectionate name for him.\n\nArjuna represents the sincere seeker who surrenders to divine wisdom. 🙏`,
-      tradition: 'Bhagavad Gita',
-      timestamp: new Date().toISOString(),
-      source: 'Bhagavad Gita - Mahabharata'
-    };
-  }
-  
-  if (q.includes('hanuman') || q.includes('who is hanuman')) {
-    return {
-      guidance: `🐒 **Hanuman - The Perfect Devotee**\n\nHanuman represents the ideal devotee who combines immense strength with complete surrender to the divine.\n\n"राम काज कीन्हे बिना मोहि कहाँ विश्राम" - "Without completing Rama's work, where is rest for me?"\n\n**Hanuman's Qualities:**\n- **Courage**: Leaped across the ocean\n- **Humility**: Despite immense powers\n- **Devotion**: Complete surrender to Rama\n- **Service**: Selfless action for the divine\n- **Strength**: Both physical and spiritual\n\nHanuman shows us how to combine power with devotion, strength with humility. 🙏`,
-      tradition: 'Ramayana',
-      timestamp: new Date().toISOString(),
-      source: 'Ramayana'
-    };
-  }
-  
-  if (q.includes('what happen after death') || q.includes('what is death')) {
-    return {
-      guidance: `🕉️ **Krishna's Teaching on Death**\n\n"न जायते म्रियते वा कदाचित् न अयं भूत्वा भविता वा न भूयः।\nअजो नित्यः शाश्वतो अयं पुराणो न हन्यते हन्यमाने शरीरे॥"\n\n**Translation**: "For the soul there is neither birth nor death. It is not slain when the body is slain." (Bhagavad Gita 2.20)\n\n**What happens after death:**\n- The eternal soul (atman) never dies\n- Only the body changes, like changing clothes\n- The soul carries its karma to the next life\n- Based on consciousness at death, the soul gets its next body\n- Ultimate goal: Liberation (moksha) from the cycle of birth and death\n\nDeath is not the end, but a transition. Focus on spiritual growth in this life. 🙏`,
+      guidance: `☮️ **Finding Inner Peace - Krishna's Teaching**\n\n"मात्रास्पर्शास्तु कौन्तेय शीतोष्णसुखदुःखदाः। आगमापायिनोऽनित्यास्तांस्तितिक्षस्व भारत॥"\n\n**Translation**: "The contact between the senses and sense objects gives rise to happiness and distress. These are temporary and come and go like winter and summer seasons. Try to tolerate them." (Bhagavad Gita 2.14)\n\n**Krishna's Path to Peace:**\n- Practice equanimity in joy and sorrow\n- Understand the temporary nature of all experiences\n- Focus on your eternal spiritual nature\n- Surrender the results of your actions to the divine\n\nTrue peace comes from within, not from external circumstances. 🙏`,
       tradition: 'Bhagavad Gita',
       timestamp: new Date().toISOString(),
       source: 'Bhagavad Gita - Lord Krishna\'s Teachings'
     };
   }
   
-  // Krishna/Gita specific fallback
-  if (isKrishnaRelated(question)) {
+  if (q.includes('purpose') || q.includes('meaning') || q.includes('life purpose')) {
     return {
-      guidance: `🦚 **Krishna's Eternal Wisdom**\n\nYour question "${question}" reflects the eternal seeking that Krishna addresses in the Bhagavad Gita.\n\n"कर्मण्येवाधिकारस्ते मा फलेषु कदाचन। मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥"\n\n"You have the right to perform your prescribed duty, but not to the fruits of action. Never consider yourself the cause of the results, nor be attached to not doing your duty." (Bhagavad Gita 2.47)\n\nKrishna teaches us three paths: Karma Yoga (selfless action), Bhakti Yoga (devotion), and Jnana Yoga (knowledge). Choose the path that resonates with your nature.\n\n🙏 May Krishna's divine grace illuminate your path to self-realization.`,
+      guidance: `🎯 **Life Purpose - Krishna's Teaching**\n\n"यदा यदा हि धर्मस्य ग्लानिर्भवति भारत। अभ्युत्थानमधर्मस्य तदात्मानं सृजाम्यहम्॥"\n\n**Translation**: "Whenever there is a decline in dharma and rise of adharma, I manifest myself." (Bhagavad Gita 4.7)\n\n**Your Divine Purpose:**\n- Discover your unique dharma (righteous duty)\n- Use your talents to serve others and the divine\n- Act without attachment to personal gain\n- Be an instrument of positive change in the world\n\nYour purpose unfolds when you align your gifts with service to the greater good. 🙏`,
+      tradition: 'Bhagavad Gita',
+      timestamp: new Date().toISOString(),
+      source: 'Bhagavad Gita - Lord Krishna\'s Teachings'
+    };
+  }
+  
+  if (q.includes('love') || q.includes('heart')) {
+    return {
+      guidance: `💖 **Divine Love - Krishna's Teaching**\n\n"सर्वभूतस्थमात्मानं सर्वभूतानि चात्मनि। ईक्षते योगयुक्तात्मा सर्वत्र समदर्शनः॥"\n\n**Translation**: "A true yogi sees Me in all beings and all beings in Me. Such a person sees the same Supreme Lord everywhere." (Bhagavad Gita 6.29)\n\n**Krishna's Teaching on Love:**\n- See the divine in every being\n- Love without attachment or possession\n- Practice compassion and forgiveness\n- Serve others as expressions of the divine\n\nTrue love is seeing God in all relationships and loving all as manifestations of the divine. 🙏`,
+      tradition: 'Bhagavad Gita',
+      timestamp: new Date().toISOString(),
+      source: 'Bhagavad Gita - Lord Krishna\'s Teachings'
+    };
+  }
+  
+  if (q.includes('work') || q.includes('job') || q.includes('career') || q.includes('duty')) {
+    return {
+      guidance: `⚖️ **Work as Spiritual Practice - Krishna's Teaching**\n\n"कर्मण्येवाधिकारस्ते मा फलेषु कदाचन। मा कर्मफलहेतुर्भूर्मा ते सङ्गोऽस्त्वकर्मणि॥"\n\n**Translation**: "You have the right to perform your duty, but not to the fruits of action." (Bhagavad Gita 2.47)\n\n**Transforming Work into Worship:**\n- Perform your duties with full dedication\n- Offer all actions to the divine\n- Don't be attached to success or failure\n- See your work as service to humanity\n\nWhen you work without ego and attachment, every action becomes a spiritual practice. 🙏`,
+      tradition: 'Bhagavad Gita',
+      timestamp: new Date().toISOString(),
+      source: 'Bhagavad Gita - Lord Krishna\'s Teachings'
+    };
+  }
+  
+  if (q.includes('happiness') || q.includes('joy') || q.includes('bliss')) {
+    return {
+      guidance: `🌟 **True Happiness - Krishna's Teaching**\n\n"यत्तदग्रे विषमिव परिणामेऽमृतोपमम्। तत्सुखं सात्त्विकं प्रोक्तमात्मबुद्धिप्रसादजम्॥"\n\n**Translation**: "That happiness which appears like poison at first but is like nectar at the end, arising from self-realization, is in the mode of goodness." (Bhagavad Gita 18.37)\n\n**Path to Lasting Happiness:**\n- Seek joy within, not in external objects\n- Practice self-discipline and spiritual growth\n- Find contentment in serving others\n- Realize your true nature as the eternal soul\n\nMaterial pleasures are temporary, but spiritual bliss is eternal. 🙏`,
+      tradition: 'Bhagavad Gita',
+      timestamp: new Date().toISOString(),
+      source: 'Bhagavad Gita - Lord Krishna\'s Teachings'
+    };
+  }
+  
+  if (q.includes('suffering') || q.includes('pain') || q.includes('sadness') || q.includes('sorrow')) {
+    return {
+      guidance: `🕉️ **Understanding Suffering - Krishna's Teaching**\n\n"दुःखेष्वनुद्विग्नमनाः सुखेषु विगतस्पृहः। वीतरागभयक्रोधः स्थितधीर्मुनिरुच्यते॥"\n\n**Translation**: "One who is not disturbed by misery, who is not elated by happiness, and who is free from attachment, fear and anger, is called a sage of steady mind." (Bhagavad Gita 2.56)\n\n**Transcending Suffering:**\n- Understand that pain is temporary\n- Don't identify with the body and mind\n- See challenges as opportunities for growth\n- Surrender to the divine will\n\nSuffering teaches us detachment and leads us closer to our true spiritual nature. 🙏`,
+      tradition: 'Bhagavad Gita',
+      timestamp: new Date().toISOString(),
+      source: 'Bhagavad Gita - Lord Krishna\'s Teachings'
+    };
+  }
+  
+  // Krishna/Gita specific fallback for any spiritual question
+  if (isKrishnaRelated(question) || q.includes('spiritual') || q.includes('god') || q.includes('divine')) {
+    return {
+      guidance: `🦚 **Krishna's Eternal Wisdom**\n\nYour question "${question}" touches the eternal truths that Krishna reveals in the Bhagavad Gita.\n\n"तत्त्वमसि" - "Thou art That" - You are the divine essence you seek.\n\n**Krishna's Three Paths to Realization:**\n🔹 **Karma Yoga** - Path of selfless action\n🔹 **Bhakti Yoga** - Path of loving devotion\n🔹 **Jnana Yoga** - Path of spiritual knowledge\n\nChoose the path that resonates with your nature, but remember all paths lead to the same divine realization. The answers you seek are already within you, waiting to be discovered through spiritual practice.\n\n🙏 May Krishna's divine grace illuminate your path to self-realization.`,
       tradition: 'Krishna & Bhagavad Gita',
       timestamp: new Date().toISOString(),
       source: 'Bhagavad Gita - Lord Krishna\'s Teachings'
     };
   }
   
+  // Universal spiritual guidance for any other question
   return {
-    guidance: `🕉️ **Spiritual Guidance for Your Journey**\n\nYour question "${question}" reflects the eternal human quest for understanding and growth. All spiritual traditions teach that the answers we seek are already within us, waiting to be discovered.\n\nAs the Tao Te Ching says: "The journey of a thousand miles begins with one step."\n\nYour spiritual journey is unique and sacred. Take time for quiet reflection, practice compassion toward yourself and others, trust in the divine plan, and remember that every experience is an opportunity for growth and awakening.\n\n🙏 May your path be illuminated with wisdom, love, and divine grace.`,
+    guidance: `🕉️ **Universal Spiritual Wisdom**\n\nYour question "${question}" reflects the eternal human quest for understanding and growth.\n\n"सर्वं खल्विदं ब्रह्म" - "All this is indeed Brahman"\n\n**Timeless Spiritual Principles:**\n- The divine resides within you\n- Every experience is a teacher\n- Love and compassion heal all wounds\n- Service to others is service to God\n- Your spiritual journey is unique and sacred\n\nAs the Upanishads teach: "What you seek is seeking you." Trust in the divine plan and know that you are guided and protected on your spiritual journey.\n\n🙏 May your path be illuminated with wisdom, love, and divine grace.`,
     tradition: 'Universal Wisdom',
     timestamp: new Date().toISOString(),
-    source: 'DharmaVerse Spiritual Guidance'
+    source: 'Sacred Scriptures & Universal Teachings'
   };
 };
 
